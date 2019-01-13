@@ -451,7 +451,31 @@ def _normalize(cmd):
         cmd = re.sub(r'^: \d+:\d+;', '', cmd, count=1)
 
     # Drop command if it was a comment.
-    return '' if cmd.startswith('#') else cmd
+    if cmd.startswith('#'):
+        return ''
+
+    ### MULTILINE: thoughts so far ###
+    #   Each branch should first replace '\' with '; ',
+    #   then call _normalize recursively on the next line.
+    # 
+    #   Commands should also be read in such a way that it moves the
+    #   file cursor (so that the same commands aren't read twice).
+    #
+    #   It may be necessary to change the readlines call to something else.
+    #
+
+    if re.match(r'^for|while', cmd):
+        # Read and join until done
+        pass
+    elif re.match(r'^if', cmd):
+        # Read and join until fi
+        pass
+    elif re.match(r'^case', cmd):
+        # Read and join until esac
+        pass
+    
+    # else:
+    return cmd # keeping this here for now so that the script works
 
 
 def _shell():
