@@ -437,19 +437,19 @@ def _history_file():
 
 def _commands():
     with io.open(_history_file(), errors='replace') as stream:
-        size = len(stream.readlines())
         stream.seek(0)
         commands = []
         next_line = stream.readline()
-        while next_line is not '':
+        while next_line != '':
             commands.append(_normalize(next_line, stream))
             next_line = stream.readline()
 
         # Remove multiple spaces
-        commands = [ re.sub(r' {2,}', ' ', c) for c in commands ]
+        commands = [re.sub(r' {2,}', ' ', c) for c in commands]
 
         # Have to filter to remove empty elements
         return list(filter(None, commands))
+
 
 def _normalize(cmd, stream):
     # Squash extra whitespace
@@ -463,16 +463,16 @@ def _normalize(cmd, stream):
     if cmd.startswith('#'):
         return ''
 
-    ### MULTILINE: thoughts so far ###
+    #    MULTILINE: thoughts so far ###
     #   Each branch should first replace '\' with '; ',
     #   then call _normalize recursively on the next line.
-    # 
+    #
     #   Commands should also be read in such a way that it moves the
     #   file cursor (so that the same commands aren't read twice).
     #
     #   It may be necessary to change the readlines call to something else.
     #
-    
+
     cmd = re.sub(r'^((?:(?!do|then|in|;).)*);?\\$', r'\1; ', cmd)
     cmd = re.sub(r'\\', ' ', cmd)
     if re.match(r'^for|while', cmd) and not re.match(r'.*done.*', cmd):
@@ -483,7 +483,7 @@ def _normalize(cmd, stream):
             nextcmd = _normalize(stream.readline(), stream)
         cmd += nextcmd
         cmd = re.sub(r';(.)', r'; \1', cmd)
-        
+
     elif re.match(r'^if', cmd) and not re.match(r'.*fi.*', cmd):
         nextcmd = ""
         while not re.match(r'.*done.*', nextcmd):
@@ -500,7 +500,7 @@ def _normalize(cmd, stream):
         cmd += nextcmd
         cmd = re.sub(r';(.)', r'; \1', cmd)
     # else:
-    return cmd # keeping this here for now so that the script works
+    return cmd  # keeping this here for now so that the script works
 
 
 def _shell():
