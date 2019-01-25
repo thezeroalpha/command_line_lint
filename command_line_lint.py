@@ -437,12 +437,21 @@ def _history_file():
 
 def _commands():
     with io.open(_history_file(), errors='replace') as stream:
-        return [
-            _normalize(cmd) for cmd in stream.readlines() if _normalize(cmd)
-        ]
+        size = len(stream.readlines())
+        stream.seek(0)
+        commands = []
+        next_line = stream.readline()
+        while next_line is not '':
+            commands.append(_normalize(next_line, stream))
+            next_line = stream.readline()
 
+        # Remove multiple spaces
+        commands = [ re.sub(r' {2,}', ' ', c) for c in commands ]
 
-def _normalize(cmd):
+        # Have to filter to remove empty elements
+        return list(filter(None, commands))
+
+def _normalize(cmd, stream):
     # Squash extra whitespace
     cmd = ' '.join(cmd.split())
 
@@ -463,17 +472,33 @@ def _normalize(cmd):
     #
     #   It may be necessary to change the readlines call to something else.
     #
-
-    if re.match(r'^for|while', cmd):
-        # Read and join until done
-        pass
-    elif re.match(r'^if', cmd):
-        # Read and join until fi
-        pass
-    elif re.match(r'^case', cmd):
-        # Read and join until esac
-        pass
     
+    cmd = re.sub(r'^((?:(?!do|then|in|;).)*);?\\$', r'\1; ', cmd)
+    cmd = re.sub(r'\\', ' ', cmd)
+    if re.match(r'^for|while', cmd) and not re.match(r'.*done.*', cmd):
+        # Read and join until done
+        nextcmd = ""
+        while not re.match(r'.*done.*', nextcmd):
+            cmd += nextcmd
+            nextcmd = _normalize(stream.readline(), stream)
+        cmd += nextcmd
+        cmd = re.sub(r';(.)', r'; \1', cmd)
+        
+    elif re.match(r'^if', cmd) and not re.match(r'.*fi.*', cmd):
+        nextcmd = ""
+        while not re.match(r'.*done.*', nextcmd):
+            cmd += nextcmd
+            nextcmd = _normalize(stream.readline(), stream)
+        cmd += nextcmd
+        cmd = re.sub(r';(.)', r'; \1', cmd)
+    elif re.match(r'^case', cmd) and not re.match(r'.*esac.*', cmd):
+        # Read and join until esac
+        nextcmd = ""
+        while not re.match(r'.*esac.*', nextcmd):
+            cmd += nextcmd
+            nextcmd = _normalize(stream.readline(), stream)
+        cmd += nextcmd
+        cmd = re.sub(r';(.)', r'; \1', cmd)
     # else:
     return cmd # keeping this here for now so that the script works
 
